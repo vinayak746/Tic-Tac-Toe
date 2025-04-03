@@ -57,6 +57,7 @@ export default function Game() {
   }
 
   const winner = calculateWinner(currentSquares);
+  const isDraw = !winner && currentSquares.every((square) => square !== null);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
@@ -82,6 +83,8 @@ export default function Game() {
             <h2 className="text-2xl font-semibold">
               {winner
                 ? `Winner: ${winner === "X" ? player1 : player2}`
+                : isDraw
+                ? "It's a Draw!"
                 : `Next player: ${xIsNext ? player1 : player2}`}
             </h2>
           </div>
