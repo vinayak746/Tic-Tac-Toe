@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import Confetti from "react-confetti";
 
 function Square({ value, onSquareClick }) {
   return (
@@ -32,7 +33,6 @@ export default function Game() {
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [stepNumber, setStepNumber] = useState(0);
   const [xIsNext, setXIsNext] = useState(true);
-
   const currentSquares = history[stepNumber];
 
   useEffect(() => {
@@ -49,7 +49,6 @@ export default function Game() {
 
     const newSquares = currentSquares.slice();
     newSquares[i] = xIsNext ? "X" : "O";
-
     const newHistory = [...history.slice(0, stepNumber + 1), newSquares];
 
     setHistory(newHistory);
@@ -79,6 +78,7 @@ export default function Game() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
+      {winner && <Confetti />}
       <div className="flex flex-col items-center w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-4">
           {winner
