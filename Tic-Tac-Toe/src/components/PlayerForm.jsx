@@ -4,45 +4,37 @@ import { useNavigate } from "react-router-dom";
 export default function PlayerForm() {
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
-  const [gameMode, setGameMode] = useState("pvp"); // "pvp" or "ai"
-  const [playerSymbol, setPlayerSymbol] = useState("X"); // Default player plays "X"
+  const [mode, setMode] = useState("player"); // default to PvP
+  const [aiSymbol, setAiSymbol] = useState("X"); // player goes first by default
+
   const navigate = useNavigate();
 
   function handleSubmit(e) {
     e.preventDefault();
-    if (gameMode === "pvp" && player1.trim() && player2.trim()) {
-      navigate(
-        `/game?mode=pvp&player1=${encodeURIComponent(
-          player1
-        )}&player2=${encodeURIComponent(player2)}`
-      );
-    } else if (gameMode === "ai" && player1.trim()) {
-      navigate(
-        `/game?mode=ai&player1=${encodeURIComponent(
-          player1
-        )}&playerSymbol=${encodeURIComponent(playerSymbol)}`
-      );
-    } else {
-      alert("Please enter player name(s).");
+
+    const p1 = player1.trim();
+    const p2 = mode === "player" ? player2.trim() : "Computer";
+
+    if (!p1 || (mode === "player" && !p2)) {
+      alert("Please enter required name(s)");
+      return;
     }
+
+    // Construct query
+    const query = new URLSearchParams({
+      player1: p1,
+      player2: p2,
+      mode,
+      playerSymbol: aiSymbol,
+    }).toString();
+
+    navigate(`/game?${query}`);
   }
 
   return (
     <div className="bg-gray-800 p-6 rounded-lg shadow-lg text-center w-80">
-      <h2 className="text-2xl font-bold mb-4">Enter Player Names</h2>
+      <h2 className="text-2xl font-bold mb-4">Enter Player Info</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="text-white">Game Mode:</label>
-          <select
-            className="w-full p-2 rounded bg-gray-700 text-white"
-            value={gameMode}
-            onChange={(e) => setGameMode(e.target.value)}
-          >
-            <option value="pvp">Player vs. Player</option>
-            <option value="ai">Player vs. Computer</option>
-          </select>
-        </div>
-
         <input
           type="text"
           placeholder="Player 1 Name"
@@ -51,7 +43,8 @@ export default function PlayerForm() {
           onChange={(e) => setPlayer1(e.target.value)}
         />
 
-        {gameMode === "pvp" ? (
+        {/* Only show Player 2 input in PvP mode */}
+        {mode === "player" && (
           <input
             type="text"
             placeholder="Player 2 Name"
@@ -59,17 +52,40 @@ export default function PlayerForm() {
             value={player2}
             onChange={(e) => setPlayer2(e.target.value)}
           />
-        ) : (
-          <div>
-            <label className="text-white">Choose Your Symbol:</label>
-            <select
-              className="w-full p-2 rounded bg-gray-700 text-white"
-              value={playerSymbol}
-              onChange={(e) => setPlayerSymbol(e.target.value)}
-            >
-              <option value="X">X</option>
-              <option value="O">O</option>
-            </select>
+        )}
+
+        <select
+          className="w-full p-2 rounded bg-gray-700 text-white"
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+        >
+          <option value="player">Player vs Player</option>
+          <option value="ai-easy">Play with AI (Easy)</option>
+          <option value="ai-medium">Play with AI (Medium)</option>
+          <option value="ai-hard">Play with AI (Hard)</option>
+        </select>
+
+        {/* Show X/O selector only for AI modes */}
+        {mode !== "player" && (
+          <div className="flex justify-center space-x-4 text-white">
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                value="X"
+                checked={aiSymbol === "X"}
+                onChange={() => setAiSymbol("X")}
+              />
+              <span>Play as X</span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                value="O"
+                checked={aiSymbol === "O"}
+                onChange={() => setAiSymbol("O")}
+              />
+              <span>Play as O</span>
+            </label>
           </div>
         )}
 

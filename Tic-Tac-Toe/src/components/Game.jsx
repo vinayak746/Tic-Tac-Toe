@@ -28,18 +28,19 @@ export default function Game() {
   const queryParams = new URLSearchParams(location.search);
   const player1 = queryParams.get("player1") || "Player X";
   const player2 = queryParams.get("player2") || "Player O";
-  const mode = queryParams.get("mode") || "player"; // "player" or "ai"
+  const mode = queryParams.get("mode") || "player";
 
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [stepNumber, setStepNumber] = useState(0);
   const [xIsNext, setXIsNext] = useState(true);
+
   const currentSquares = history[stepNumber];
 
   useEffect(() => {
-    if (mode === "ai" && !xIsNext && !calculateWinner(currentSquares)) {
-      const bestMove = findBestMove(currentSquares, "O");
-      if (bestMove !== -1) {
-        setTimeout(() => handleAIMove(bestMove), 500);
+    if (mode.startsWith("ai") && !xIsNext && !calculateWinner(currentSquares)) {
+      const move = getAIMove(currentSquares, mode);
+      if (move !== -1) {
+        setTimeout(() => handleAIMove(move), 400);
       }
     }
   }, [xIsNext, history]);
@@ -49,6 +50,7 @@ export default function Game() {
 
     const newSquares = currentSquares.slice();
     newSquares[i] = xIsNext ? "X" : "O";
+
     const newHistory = [...history.slice(0, stepNumber + 1), newSquares];
 
     setHistory(newHistory);
@@ -79,6 +81,7 @@ export default function Game() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
       {winner && <Confetti />}
+
       <div className="flex flex-col items-center w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-4">
           {winner
@@ -89,7 +92,6 @@ export default function Game() {
         </h2>
         <Board squares={currentSquares} onPlay={handlePlay} />
 
-        {/* Move History Buttons */}
         <div className="mt-4">
           {history.map((_, move) => (
             <button
@@ -113,7 +115,50 @@ export default function Game() {
   );
 }
 
-// 🔥 Minimax Algorithm for AI
+function getAIMove(squares, mode) {
+  switch (mode) {
+    case "ai-easy":
+      return getRandomMove(squares);
+    case "ai-medium":
+      return getMediumMove(squares);
+    case "ai-hard":
+      return findBestMove(squares, "O");
+    default:
+      return -1;
+  }
+}
+
+function getRandomMove(squares) {
+  const available = squares
+    .map((val, idx) => (val === null ? idx : null))
+    .filter((val) => val !== null);
+  return available[Math.floor(Math.random() * available.length)];
+}
+
+function getMediumMove(squares) {
+  for (let i = 0; i < squares.length; i++) {
+    if (!squares[i]) {
+      squares[i] = "O";
+      if (calculateWinner(squares) === "O") {
+        squares[i] = null;
+        return i;
+      }
+      squares[i] = null;
+    }
+  }
+  for (let i = 0; i < squares.length; i++) {
+    if (!squares[i]) {
+      squares[i] = "X";
+      if (calculateWinner(squares) === "X") {
+        squares[i] = null;
+        return i;
+      }
+      squares[i] = null;
+    }
+  }
+  return getRandomMove(squares);
+}
+
 function findBestMove(squares, aiPlayer) {
   let bestScore = -Infinity;
   let move = -1;
@@ -162,7 +207,6 @@ function minimax(squares, depth, isMaximizing) {
   }
 }
 
-// Function to check for a winner
 function calculateWinner(squares) {
   const lines = [
     [0, 1, 2],
