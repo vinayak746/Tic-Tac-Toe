@@ -136,38 +136,21 @@ export default function Game() {
             : `Next player: ${xIsNext ? player1 : player2}`}
         </h2>
 
-        {isDraw && drawEffect === "awkward" && (
-          <div className="text-lg text-white opacity-60 italic">
-            😐 Well... that was pointless.
-          </div>
-        )}
-        {isDraw && drawEffect === "glitch" && (
-          <div className="text-lg text-pink-400 animate-bounce font-mono">
-            💥 Reality has glitched. It's a draw.
-          </div>
-        )}
-        {isDraw && drawEffect === "drama" && (
-          <div className="text-xl text-red-400 font-bold animate-pulse">
-            😬 DRAW: Both players failed.
-          </div>
-        )}
+        {isDraw &&
+          (drawEffect === "awkward" ? (
+            <div className="text-lg text-white opacity-60 italic">
+              😐 Well... that was pointless.
+            </div>
+          ) : drawEffect === "glitch" ? (
+            <div className="text-lg text-pink-400 animate-bounce font-mono">
+              💥 Reality has glitched. It's a draw.
+            </div>
+          ) : (
+            <div className="text-xl text-red-400 font-bold animate-pulse">
+              😬 DRAW: Both players failed.
+            </div>
+          ))}
 
-        {/* <table className="mb-4 border border-white text-white w-full text-center">
-          <thead>
-            <tr className="bg-gray-700">
-              <th className="p-2">{player1} (X)</th>
-              <th className="p-2">{player2} (O)</th>
-              <th className="p-2">Draws</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td className="p-2">{scoreX}</td>
-              <td className="p-2">{scoreO}</td>
-              <td className="p-2">{draws}</td>
-            </tr>
-          </tbody>
-        </table> */}
         <table className="mb-6 w-full text-center text-white border-collapse rounded-lg overflow-hidden shadow-lg">
           <thead>
             <tr className="bg-blue-700">
