@@ -120,7 +120,7 @@ export default function Game() {
   function resetGame() {
     setHistory([Array(9).fill(null)]);
     setStepNumber(0);
-    setXIsNext(true);
+    setXIsNext(history.length % 2 === 0);
     setDrawEffect(null);
   }
 
