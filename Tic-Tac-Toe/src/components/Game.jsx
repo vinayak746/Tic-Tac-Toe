@@ -33,11 +33,23 @@ export default function Game() {
   const [history, setHistory] = useState([Array(9).fill(null)]);
   const [stepNumber, setStepNumber] = useState(0);
   const [xIsNext, setXIsNext] = useState(true);
+  const [drawEffect, setDrawEffect] = useState(null);
+  const [scoreX, setScoreX] = useState(
+    () => Number(localStorage.getItem("scoreX")) || 0
+  );
+  const [scoreO, setScoreO] = useState(
+    () => Number(localStorage.getItem("scoreO")) || 0
+  );
+  const [draws, setDraws] = useState(
+    () => Number(localStorage.getItem("draws")) || 0
+  );
 
   const currentSquares = history[stepNumber];
+  const winner = calculateWinner(currentSquares);
+  const isDraw = !winner && currentSquares.every((square) => square !== null);
 
   useEffect(() => {
-    if (mode.startsWith("ai") && !xIsNext && !calculateWinner(currentSquares)) {
+    if (mode.startsWith("ai") && !xIsNext && !winner) {
       const move = getAIMove(currentSquares, mode);
       if (move !== -1) {
         setTimeout(() => handleAIMove(move), 400);
@@ -45,8 +57,44 @@ export default function Game() {
     }
   }, [xIsNext, history]);
 
+  useEffect(() => {
+    if (isDraw) {
+      const effects = ["awkward", "glitch", "drama"];
+      const randomEffect = effects[Math.floor(Math.random() * effects.length)];
+      setDrawEffect(randomEffect);
+    } else {
+      setDrawEffect(null);
+    }
+  }, [isDraw]);
+
+  useEffect(() => {
+    if (!winner && !isDraw) return;
+
+    if (stepNumber === 9 || winner) {
+      if (winner === "X") {
+        setScoreX((prev) => {
+          const updated = prev + 1;
+          localStorage.setItem("scoreX", updated);
+          return updated;
+        });
+      } else if (winner === "O") {
+        setScoreO((prev) => {
+          const updated = prev + 1;
+          localStorage.setItem("scoreO", updated);
+          return updated;
+        });
+      } else if (isDraw) {
+        setDraws((prev) => {
+          const updated = prev + 1;
+          localStorage.setItem("draws", updated);
+          return updated;
+        });
+      }
+    }
+  }, [winner, isDraw]);
+
   function handlePlay(i) {
-    if (currentSquares[i] || calculateWinner(currentSquares)) return;
+    if (currentSquares[i] || winner) return;
 
     const newSquares = currentSquares.slice();
     newSquares[i] = xIsNext ? "X" : "O";
@@ -59,7 +107,7 @@ export default function Game() {
   }
 
   function handleAIMove(i) {
-    if (!currentSquares[i] && !calculateWinner(currentSquares)) {
+    if (!currentSquares[i] && !winner) {
       handlePlay(i);
     }
   }
@@ -73,23 +121,71 @@ export default function Game() {
     setHistory([Array(9).fill(null)]);
     setStepNumber(0);
     setXIsNext(true);
+    setDrawEffect(null);
   }
-
-  const winner = calculateWinner(currentSquares);
-  const isDraw = !winner && currentSquares.every((square) => square !== null);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
       {winner && <Confetti />}
-
       <div className="flex flex-col items-center w-full max-w-md">
-        <h2 className="text-2xl font-semibold mb-4">
+        <h2 className="text-2xl font-semibold mb-2">
           {winner
             ? `Winner: ${winner === "X" ? player1 : player2}`
             : isDraw
             ? "It's a draw!"
             : `Next player: ${xIsNext ? player1 : player2}`}
         </h2>
+
+        {isDraw && drawEffect === "awkward" && (
+          <div className="text-lg text-white opacity-60 italic">
+            😐 Well... that was pointless.
+          </div>
+        )}
+        {isDraw && drawEffect === "glitch" && (
+          <div className="text-lg text-pink-400 animate-bounce font-mono">
+            💥 Reality has glitched. It's a draw.
+          </div>
+        )}
+        {isDraw && drawEffect === "drama" && (
+          <div className="text-xl text-red-400 font-bold animate-pulse">
+            😬 DRAW: Both players failed.
+          </div>
+        )}
+
+        <table className="mb-6 w-full text-center text-white border-collapse rounded-lg overflow-hidden shadow-lg">
+          <thead>
+            <tr className="bg-blue-700">
+              <th className="p-3 font-semibold border-b border-blue-300">
+                {player1} (X)
+              </th>
+              <th className="p-3 font-semibold border-b border-blue-300">
+                {player2} (O)
+              </th>
+              <th className="p-3 font-semibold border-b border-blue-300">
+                Draws
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-blue-950/50">
+            <tr className="hover:bg-blue-800/50 transition">
+              <td className="p-3 border-b border-blue-300">
+                {history.filter((h) => calculateWinner(h) === "X").length}
+              </td>
+              <td className="p-3 border-b border-blue-300">
+                {history.filter((h) => calculateWinner(h) === "O").length}
+              </td>
+              <td className="p-3 border-b border-blue-300">
+                {
+                  history.filter((h) => {
+                    const w = calculateWinner(h);
+                    return !w && h.every((cell) => cell !== null);
+                  }).length
+                }
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
         <Board squares={currentSquares} onPlay={handlePlay} />
 
         <div className="mt-4">
@@ -109,6 +205,20 @@ export default function Game() {
           onClick={resetGame}
         >
           Restart Game
+        </button>
+
+        <button
+          className="mt-2 px-6 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          onClick={() => {
+            setScoreX(0);
+            setScoreO(0);
+            setDraws(0);
+            localStorage.removeItem("scoreX");
+            localStorage.removeItem("scoreO");
+            localStorage.removeItem("draws");
+          }}
+        >
+          Reset Scoreboard
         </button>
       </div>
     </div>
