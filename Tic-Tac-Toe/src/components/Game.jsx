@@ -152,6 +152,22 @@ export default function Game() {
           </div>
         )}
 
+        {/* <table className="mb-4 border border-white text-white w-full text-center">
+          <thead>
+            <tr className="bg-gray-700">
+              <th className="p-2">{player1} (X)</th>
+              <th className="p-2">{player2} (O)</th>
+              <th className="p-2">Draws</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td className="p-2">{scoreX}</td>
+              <td className="p-2">{scoreO}</td>
+              <td className="p-2">{draws}</td>
+            </tr>
+          </tbody>
+        </table> */}
         <table className="mb-6 w-full text-center text-white border-collapse rounded-lg overflow-hidden shadow-lg">
           <thead>
             <tr className="bg-blue-700">
@@ -168,20 +184,9 @@ export default function Game() {
           </thead>
           <tbody className="bg-blue-950/50">
             <tr className="hover:bg-blue-800/50 transition">
-              <td className="p-3 border-b border-blue-300">
-                {history.filter((h) => calculateWinner(h) === "X").length}
-              </td>
-              <td className="p-3 border-b border-blue-300">
-                {history.filter((h) => calculateWinner(h) === "O").length}
-              </td>
-              <td className="p-3 border-b border-blue-300">
-                {
-                  history.filter((h) => {
-                    const w = calculateWinner(h);
-                    return !w && h.every((cell) => cell !== null);
-                  }).length
-                }
-              </td>
+              <td className="p-3 border-b border-blue-300">{scoreX}</td>
+              <td className="p-3 border-b border-blue-300">{scoreO}</td>
+              <td className="p-3 border-b border-blue-300">{draws}</td>
             </tr>
           </tbody>
         </table>
