@@ -4,23 +4,22 @@ import { useNavigate } from "react-router-dom";
 export default function PlayerForm() {
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
-  const [mode, setMode] = useState("player"); // default to PvP
-  const [aiSymbol, setAiSymbol] = useState("X"); // player goes first by default
+  const [mode, setMode] = useState("player");
+  const [aiSymbol, setAiSymbol] = useState("X");
 
   const navigate = useNavigate();
 
   function handleSubmit(e) {
     e.preventDefault();
 
-    const p1 = player1.trim();
-    const p2 = mode === "player" ? player2.trim() : "Computer";
+    const p1 = player1.trim() || "Player 1";
+    const p2 = mode === "player" ? player2.trim() || "Player 2" : "Computer";
 
     if (!p1 || (mode === "player" && !p2)) {
       alert("Please enter required name(s)");
       return;
     }
 
-    // Construct query
     const query = new URLSearchParams({
       player1: p1,
       player2: p2,
@@ -29,6 +28,11 @@ export default function PlayerForm() {
     }).toString();
 
     navigate(`/game?${query}`);
+  }
+
+  function handleMultiplayerClick(e) {
+    e.preventDefault(); // prevents form submit
+    navigate("/multiplayer");
   }
 
   return (
@@ -43,7 +47,6 @@ export default function PlayerForm() {
           onChange={(e) => setPlayer1(e.target.value)}
         />
 
-        {/* Only show Player 2 input in PvP mode */}
         {mode === "player" && (
           <input
             type="text"
@@ -65,7 +68,6 @@ export default function PlayerForm() {
           <option value="ai-hard">Play with AI (Hard)</option>
         </select>
 
-        {/* Show X/O selector only for AI modes */}
         {mode !== "player" && (
           <div className="flex justify-center space-x-4 text-white">
             <label className="flex items-center space-x-2">
@@ -91,9 +93,17 @@ export default function PlayerForm() {
 
         <button
           type="submit"
-          className="bg-blue-500 px-4 py-2 rounded hover:bg-blue-600"
+          className="bg-blue-500 px-4 py-2 rounded-lg hover:bg-blue-600"
         >
           Start Game
+        </button>
+
+        <button
+          type="button"
+          onClick={handleMultiplayerClick}
+          className="bg-purple-600 text-white px-4 py-2 rounded-xl hover:bg-purple-700"
+        >
+          Multiplayer Mode
         </button>
       </form>
     </div>
