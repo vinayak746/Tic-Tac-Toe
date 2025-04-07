@@ -1,11 +1,24 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import Confetti from "react-confetti";
-
-function Square({ value, onSquareClick }) {
+function Square({ value, onSquareClick, isWinning }) {
   return (
     <button
-      className="w-16 h-16 bg-gray-800 border border-gray-500 text-3xl text-white font-bold flex items-center justify-center hover:bg-gray-700"
+      className={`
+        w-16 h-16 
+        ${
+          isWinning
+            ? "bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.8)]"
+            : "bg-gray-800"
+        }
+        border border-gray-500 
+        text-3xl text-white font-bold 
+        flex items-center justify-center 
+        hover:bg-gray-700 
+        hover:scale-105 
+        active:scale-95 
+        transition-all duration-200 ease-out
+      `}
       onClick={onSquareClick}
     >
       {value}
@@ -13,11 +26,16 @@ function Square({ value, onSquareClick }) {
   );
 }
 
-function Board({ squares, onPlay }) {
+function Board({ squares, onPlay, winningLine }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {squares.map((square, i) => (
-        <Square key={i} value={square} onSquareClick={() => onPlay(i)} />
+        <Square
+          key={i}
+          value={square}
+          onSquareClick={() => onPlay(i)}
+          isWinning={winningLine.includes(i)}
+        />
       ))}
     </div>
   );
@@ -45,7 +63,7 @@ export default function Game() {
   );
 
   const currentSquares = history[stepNumber];
-  const winner = calculateWinner(currentSquares);
+  const { winner, line: winningLine } = calculateWinner(currentSquares);
   const isDraw = !winner && currentSquares.every((square) => square !== null);
 
   useEffect(() => {
@@ -174,7 +192,11 @@ export default function Game() {
           </tbody>
         </table>
 
-        <Board squares={currentSquares} onPlay={handlePlay} />
+        <Board
+          squares={currentSquares}
+          onPlay={handlePlay}
+          winningLine={winner ? winningLine : []}
+        />
 
         <div className="mt-4">
           {history.map((_, move) => (
@@ -318,8 +340,8 @@ function calculateWinner(squares) {
   ];
   for (const [a, b, c] of lines) {
     if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
-      return squares[a];
+      return { winner: squares[a], line: [a, b, c] };
     }
   }
-  return null;
+  return { winner: null, line: [] };
 }
