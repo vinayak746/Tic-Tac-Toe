@@ -1,5 +1,8 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { io } from "socket.io-client";
+
+const socket = io("http://localhost:3000"); // Backend WebSocket server
 
 export default function MultiplayerRoom() {
   const [params] = useSearchParams();
@@ -7,38 +10,41 @@ export default function MultiplayerRoom() {
 
   const roomId = params.get("room");
   const name = params.get("name");
-  const type = params.get("type"); // host or guest
+  const type = params.get("type"); // 'host' or 'guest'
 
-  const [players, setPlayers] = useState([{ name, type }]);
-
-  const [isReady, setIsReady] = useState(false);
+  const [players, setPlayers] = useState([]);
 
   useEffect(() => {
-    // Simulate the second player joining after 2 seconds
-    const timeout = setTimeout(() => {
-      if (players.length === 1) {
-        setPlayers([
-          ...players,
-          {
-            name: type === "host" ? "Guest" : "Host",
-            type: type === "host" ? "guest" : "host",
-          },
-        ]);
-      }
-    }, 2000);
+    if (!roomId || !name || !type) return;
 
-    return () => clearTimeout(timeout);
-  }, [players, type]);
+    // Join the room
+    socket.emit("joinRoom", { roomId, name, type });
+
+    // Update player list when server sends an update
+    socket.on("roomUpdate", (roomPlayers) => {
+      setPlayers(roomPlayers);
+    });
+
+    // Start game when host triggers it
+    socket.on("startGame", () => {
+      const [player1, player2] = players;
+      navigate(
+        `/game?mode=multiplayer&player1=${encodeURIComponent(
+          player1.name
+        )}&player2=${encodeURIComponent(player2.name)}&room=${roomId}`
+      );
+    });
+
+    // Cleanup
+    return () => {
+      socket.off("roomUpdate");
+      socket.off("startGame");
+    };
+  }, [roomId, name, type, navigate, players]);
 
   const handleStartGame = () => {
     if (players.length < 2) return alert("Waiting for the second player...");
-    const player1 = players[0].name;
-    const player2 = players[1].name;
-    navigate(
-      `/game?mode=multiplayer&player1=${encodeURIComponent(
-        player1
-      )}&player2=${encodeURIComponent(player2)}&room=${roomId}`
-    );
+    socket.emit("startGame", roomId);
   };
 
   return (

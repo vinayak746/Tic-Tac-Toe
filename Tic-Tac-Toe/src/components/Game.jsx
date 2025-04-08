@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import socket from "../socket";
 import Confetti from "react-confetti";
+
 function Square({ value, onSquareClick, isWinning }) {
   return (
     <button
@@ -44,6 +46,8 @@ function Board({ squares, onPlay, winningLine }) {
 export default function Game() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
+  const roomId = queryParams.get("room");
+
   const player1 = queryParams.get("player1") || "Player X";
   const player2 = queryParams.get("player2") || "Player O";
   const mode = queryParams.get("mode") || "player";
@@ -111,17 +115,26 @@ export default function Game() {
     }
   }, [winner, isDraw]);
 
-  function handlePlay(i) {
+  function handlePlay(i, fromSocket = false) {
     if (currentSquares[i] || winner) return;
+
+    if (mode === "multiplayer" && !fromSocket) {
+      // Only allow local move if it's this player's turn
+      const isMyTurn = xIsNext === (player1 === "Player X");
+      if (!isMyTurn) return;
+    }
 
     const newSquares = currentSquares.slice();
     newSquares[i] = xIsNext ? "X" : "O";
-
     const newHistory = [...history.slice(0, stepNumber + 1), newSquares];
 
     setHistory(newHistory);
     setStepNumber(newHistory.length - 1);
     setXIsNext(!xIsNext);
+
+    if (mode === "multiplayer" && !fromSocket) {
+      socket.emit("makeMove", { roomId, index: i });
+    }
   }
 
   function handleAIMove(i) {
@@ -141,6 +154,22 @@ export default function Game() {
     setXIsNext(history.length % 2 === 0);
     setDrawEffect(null);
   }
+
+  useEffect(() => {
+    if (mode === "multiplayer") {
+      console.log("Joining room:", roomId);
+      socket.emit("joinRoom", roomId);
+
+      socket.on("opponentMove", (index) => {
+        console.log("Opponent moved:", index);
+        handlePlay(index, true);
+      });
+    }
+
+    return () => {
+      socket.off("opponentMove");
+    };
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
