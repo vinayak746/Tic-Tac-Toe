@@ -1,58 +1,62 @@
+const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
+const cors = require("cors");
 
-const server = http.createServer();
-const io = new Server(server, {
+const app = express();
+app.use(cors());
+
+const server = http.createServer(app);
+const io = require("socket.io")(3000, {
   cors: {
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
+    origin: "*",
   },
 });
 
 const rooms = {};
 
 io.on("connection", (socket) => {
-  console.log("A user connected:", socket.id);
-
   socket.on("joinRoom", ({ roomId, name, type }) => {
     socket.join(roomId);
+    socket.roomId = roomId;
+    socket.name = name;
 
     if (!rooms[roomId]) {
       rooms[roomId] = [];
     }
 
-    const player = { id: socket.id, name, type };
-    rooms[roomId].push(player);
-    console.log(`Player ${name} (${type}) joined room ${roomId}`);
+    // Avoid duplicate entries
+    const isAlreadyInRoom = rooms[roomId].some(
+      (player) => player.name === name
+    );
+    if (!isAlreadyInRoom) {
+      rooms[roomId].push({ id: socket.id, name, type });
+    }
 
     io.to(roomId).emit("roomUpdate", rooms[roomId]);
   });
 
-  socket.on("startGame", (roomId) => {
-    console.log(`Game started in room ${roomId}`);
-    io.to(roomId).emit("startGame");
+  socket.on("startGame", (players) => {
+    const roomId = socket.roomId;
+    if (roomId) {
+      io.to(roomId).emit("startGame", players);
+    }
   });
 
   socket.on("disconnect", () => {
-    for (const roomId in rooms) {
-      const prevLength = rooms[roomId].length;
-      rooms[roomId] = rooms[roomId].filter((p) => p.id !== socket.id);
-
-      if (rooms[roomId].length !== prevLength) {
-        io.to(roomId).emit("roomUpdate", rooms[roomId]);
-        console.log(`Player disconnected from room ${roomId}`);
-      }
-
-      // Clean up empty rooms
+    const roomId = socket.roomId;
+    const name = socket.name;
+    if (roomId && rooms[roomId]) {
+      rooms[roomId] = rooms[roomId].filter((player) => player.name !== name);
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
+      } else {
+        io.to(roomId).emit("roomUpdate", rooms[roomId]);
       }
     }
-
-    console.log("User disconnected:", socket.id);
   });
 });
 
-server.listen(3000, () => {
-  console.log("Server running on port 3000");
+server.listen(3001, () => {
+  console.log("Server running on http://localhost:3001");
 });

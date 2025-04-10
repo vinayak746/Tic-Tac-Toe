@@ -6,7 +6,8 @@ import {
 } from "react-router-dom";
 import PlayerForm from "./components/PlayerForm";
 import Game from "./components/Game";
-import MultiplayerLobby from "./components/MultiplayerLobby";
+import MultiplayerSetup from "./components/MultiplayerSetup";
+import Lobby from "./components/Lobby";
 
 function AppWrapper() {
   const location = useLocation();
@@ -23,7 +24,8 @@ function AppWrapper() {
       <Routes>
         <Route path="/" element={<PlayerForm />} />
         <Route path="/game" element={<Game />} />
-        <Route path="/multiplayer" element={<MultiplayerLobby />} />
+        <Route path="/multiplayer" element={<MultiplayerSetup />} />
+        <Route path="/lobby" element={<Lobby />} />
       </Routes>
     </div>
   );
