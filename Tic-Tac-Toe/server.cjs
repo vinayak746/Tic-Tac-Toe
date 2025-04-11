@@ -1,18 +1,18 @@
 const express = require("express");
 const http = require("http");
-const { Server } = require("socket.io");
 const cors = require("cors");
+const { Server } = require("socket.io");
 
 const app = express();
+
 app.use(cors());
 
 const server = http.createServer(app);
-const io = require("socket.io")(3000, {
+const io = new Server(server, {
   cors: {
     origin: "*",
   },
 });
-
 const rooms = {};
 
 io.on("connection", (socket) => {
@@ -25,7 +25,6 @@ io.on("connection", (socket) => {
       rooms[roomId] = [];
     }
 
-    // Avoid duplicate entries
     const isAlreadyInRoom = rooms[roomId].some(
       (player) => player.name === name
     );
@@ -43,6 +42,14 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Handle player moves
+  socket.on("playerMove", ({ roomId, move }) => {
+    if (roomId) {
+      // Broadcast the move to other players in the room
+      socket.to(roomId).emit("playerMove", move);
+    }
+  });
+
   socket.on("disconnect", () => {
     const roomId = socket.roomId;
     const name = socket.name;
@@ -57,6 +64,6 @@ io.on("connection", (socket) => {
   });
 });
 
-server.listen(3001, () => {
-  console.log("Server running on http://localhost:3001");
+server.listen(3000, () => {
+  console.log("Server running on http://localhost:3000");
 });

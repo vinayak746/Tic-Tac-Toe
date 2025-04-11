@@ -18,7 +18,7 @@ function Square({ value, onSquareClick, isWinning }) {
         flex items-center justify-center 
         hover:bg-gray-700 
         hover:scale-105 
-        active:scale-95 
+        active:scale-95
         transition-all duration-200 ease-out
       `}
       onClick={onSquareClick}
@@ -35,7 +35,9 @@ function Board({ squares, onPlay, winningLine }) {
         <Square
           key={i}
           value={square}
-          onSquareClick={() => onPlay(i)}
+          onSquareClick={() => {
+            onPlay(i);
+          }}
           isWinning={winningLine.includes(i)}
         />
       ))}
@@ -115,8 +117,12 @@ export default function Game() {
     }
   }, [winner, isDraw]);
 
-  function handlePlay(i, fromSocket = false) {
+  function handlePlay(i, fromSocket = xIsNext && !winner) {
     if (currentSquares[i] || winner) return;
+
+    console.log({
+      fromSocket,
+    });
 
     if (mode === "multiplayer" && !fromSocket) {
       // Only allow local move if it's this player's turn
