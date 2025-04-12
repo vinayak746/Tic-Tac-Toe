@@ -4,7 +4,6 @@ const cors = require("cors");
 const { Server } = require("socket.io");
 
 const app = express();
-
 app.use(cors());
 
 const server = http.createServer(app);
@@ -13,14 +12,11 @@ const io = new Server(server, {
     origin: "*",
   },
 });
+
 const rooms = {};
 
 io.on("connection", (socket) => {
   socket.on("joinRoom", ({ roomId, name, type }) => {
-    socket.join(roomId);
-    socket.roomId = roomId;
-    socket.name = name;
-
     if (!rooms[roomId]) {
       rooms[roomId] = [];
     }
@@ -28,24 +24,37 @@ io.on("connection", (socket) => {
     const isAlreadyInRoom = rooms[roomId].some(
       (player) => player.name === name
     );
+    const isRoomFull = rooms[roomId].length >= 2;
+
+    if (isRoomFull && !isAlreadyInRoom) {
+      socket.emit("error", { message: "Room is full." });
+      return;
+    }
+
+    socket.join(roomId);
+    socket.roomId = roomId;
+    socket.name = name;
+
     if (!isAlreadyInRoom) {
       rooms[roomId].push({ id: socket.id, name, type });
     }
 
+    // Notify the specific player they joined successfully
+    socket.emit("roomJoined", { roomId, players: rooms[roomId] });
+
+    // Notify everyone in the room of the current player list
     io.to(roomId).emit("roomUpdate", rooms[roomId]);
   });
 
-  socket.on("startGame", (players) => {
+  socket.on("startGame", () => {
     const roomId = socket.roomId;
-    if (roomId) {
-      io.to(roomId).emit("startGame", players);
+    if (roomId && rooms[roomId]) {
+      io.to(roomId).emit("startGame", rooms[roomId]);
     }
   });
 
-  // Handle player moves
   socket.on("playerMove", ({ roomId, move }) => {
     if (roomId) {
-      // Broadcast the move to other players in the room
       socket.to(roomId).emit("playerMove", move);
     }
   });
@@ -53,8 +62,10 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const roomId = socket.roomId;
     const name = socket.name;
+
     if (roomId && rooms[roomId]) {
       rooms[roomId] = rooms[roomId].filter((player) => player.name !== name);
+
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
       } else {

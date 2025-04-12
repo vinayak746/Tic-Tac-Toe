@@ -3,24 +3,15 @@ import { useLocation } from "react-router-dom";
 import socket from "../socket";
 import Confetti from "react-confetti";
 
+// Square Component
 function Square({ value, onSquareClick, isWinning }) {
   return (
     <button
-      className={`
-        w-16 h-16 
-        ${
-          isWinning
-            ? "bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.8)]"
-            : "bg-gray-800"
-        }
-        border border-gray-500 
-        text-3xl text-white font-bold 
-        flex items-center justify-center 
-        hover:bg-gray-700 
-        hover:scale-105 
-        active:scale-95
-        transition-all duration-200 ease-out
-      `}
+      className={`w-16 h-16 ${
+        isWinning
+          ? "bg-green-600 shadow-[0_0_15px_rgba(34,197,94,0.8)]"
+          : "bg-gray-800"
+      } border border-gray-500 text-3xl text-white font-bold flex items-center justify-center hover:bg-gray-700 hover:scale-105 active:scale-95 transition-all duration-200 ease-out`}
       onClick={onSquareClick}
     >
       {value}
@@ -28,6 +19,7 @@ function Square({ value, onSquareClick, isWinning }) {
   );
 }
 
+// Board Component
 function Board({ squares, onPlay, winningLine }) {
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -35,9 +27,7 @@ function Board({ squares, onPlay, winningLine }) {
         <Square
           key={i}
           value={square}
-          onSquareClick={() => {
-            onPlay(i);
-          }}
+          onSquareClick={() => onPlay(i)}
           isWinning={winningLine.includes(i)}
         />
       ))}
@@ -45,11 +35,12 @@ function Board({ squares, onPlay, winningLine }) {
   );
 }
 
+// Game Component
 export default function Game() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
-  const roomId = queryParams.get("room");
 
+  const roomId = queryParams.get("room");
   const player1 = queryParams.get("player1") || "Player X";
   const player2 = queryParams.get("player2") || "Player O";
   const mode = queryParams.get("mode") || "player";
@@ -67,11 +58,13 @@ export default function Game() {
   const [draws, setDraws] = useState(
     () => Number(localStorage.getItem("draws")) || 0
   );
-
   const currentSquares = history[stepNumber];
   const { winner, line: winningLine } = calculateWinner(currentSquares);
   const isDraw = !winner && currentSquares.every((square) => square !== null);
 
+  const isHost = player1 === "Player X"; // multiplayer role assignment
+
+  // Handle AI Moves
   useEffect(() => {
     if (mode.startsWith("ai") && !xIsNext && !winner) {
       const move = getAIMove(currentSquares, mode);
@@ -81,6 +74,7 @@ export default function Game() {
     }
   }, [xIsNext, history]);
 
+  // Draw effect
   useEffect(() => {
     if (isDraw) {
       const effects = ["awkward", "glitch", "drama"];
@@ -91,42 +85,31 @@ export default function Game() {
     }
   }, [isDraw]);
 
+  // Score tracking
   useEffect(() => {
     if (!winner && !isDraw) return;
-
-    if (stepNumber === 9 || winner) {
-      if (winner === "X") {
-        setScoreX((prev) => {
-          const updated = prev + 1;
-          localStorage.setItem("scoreX", updated);
-          return updated;
-        });
-      } else if (winner === "O") {
-        setScoreO((prev) => {
-          const updated = prev + 1;
-          localStorage.setItem("scoreO", updated);
-          return updated;
-        });
-      } else if (isDraw) {
-        setDraws((prev) => {
-          const updated = prev + 1;
-          localStorage.setItem("draws", updated);
-          return updated;
-        });
-      }
+    if (winner === "X") {
+      updateScore(setScoreX, "scoreX");
+    } else if (winner === "O") {
+      updateScore(setScoreO, "scoreO");
+    } else if (isDraw) {
+      updateScore(setDraws, "draws");
     }
   }, [winner, isDraw]);
 
-  function handlePlay(i, fromSocket = xIsNext && !winner) {
+  function updateScore(setter, key) {
+    setter((prev) => {
+      const updated = prev + 1;
+      localStorage.setItem(key, updated);
+      return updated;
+    });
+  }
+
+  function handlePlay(i, fromSocket = false) {
     if (currentSquares[i] || winner) return;
 
-    console.log({
-      fromSocket,
-    });
-
     if (mode === "multiplayer" && !fromSocket) {
-      // Only allow local move if it's this player's turn
-      const isMyTurn = xIsNext === (player1 === "Player X");
+      const isMyTurn = (xIsNext && isHost) || (!xIsNext && !isHost);
       if (!isMyTurn) return;
     }
 
@@ -144,9 +127,7 @@ export default function Game() {
   }
 
   function handleAIMove(i) {
-    if (!currentSquares[i] && !winner) {
-      handlePlay(i);
-    }
+    if (!currentSquares[i] && !winner) handlePlay(i);
   }
 
   function jumpTo(step) {
@@ -163,13 +144,8 @@ export default function Game() {
 
   useEffect(() => {
     if (mode === "multiplayer") {
-      console.log("Joining room:", roomId);
       socket.emit("joinRoom", roomId);
-
-      socket.on("opponentMove", (index) => {
-        console.log("Opponent moved:", index);
-        handlePlay(index, true);
-      });
+      socket.on("opponentMove", (index) => handlePlay(index, true));
     }
 
     return () => {
@@ -177,52 +153,53 @@ export default function Game() {
     };
   }, []);
 
+  const winnerName = winner === "X" ? player1 : player2;
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
       {winner && <Confetti />}
       <div className="flex flex-col items-center w-full max-w-md">
         <h2 className="text-2xl font-semibold mb-2">
           {winner
-            ? `Winner: ${winner === "X" ? player1 : player2}`
+            ? `Winner: ${winnerName}`
             : isDraw
             ? "It's a draw!"
             : `Next player: ${xIsNext ? player1 : player2}`}
         </h2>
 
-        {isDraw &&
-          (drawEffect === "awkward" ? (
-            <div className="text-lg text-white opacity-60 italic">
-              😐 Well... that was pointless.
-            </div>
-          ) : drawEffect === "glitch" ? (
-            <div className="text-lg text-pink-400 animate-bounce font-mono">
-              💥 Reality has glitched. It's a draw.
-            </div>
-          ) : (
-            <div className="text-xl text-red-400 font-bold animate-pulse">
-              😬 DRAW: Both players failed.
-            </div>
-          ))}
+        {isDraw && (
+          <>
+            {drawEffect === "awkward" && (
+              <div className="text-lg text-white opacity-60 italic">
+                😐 Well... that was pointless.
+              </div>
+            )}
+            {drawEffect === "glitch" && (
+              <div className="text-lg text-pink-400 animate-bounce font-mono">
+                💥 Reality has glitched. It's a draw.
+              </div>
+            )}
+            {drawEffect === "drama" && (
+              <div className="text-xl text-red-400 font-bold animate-pulse">
+                😬 DRAW: Both players failed.
+              </div>
+            )}
+          </>
+        )}
 
         <table className="mb-6 w-full text-center text-white border-collapse rounded-lg overflow-hidden shadow-lg">
           <thead>
             <tr className="bg-blue-700">
-              <th className="p-3 font-semibold border-b border-blue-300">
-                {player1} (X)
-              </th>
-              <th className="p-3 font-semibold border-b border-blue-300">
-                {player2} (O)
-              </th>
-              <th className="p-3 font-semibold border-b border-blue-300">
-                Draws
-              </th>
+              <th className="p-3 border-b">{player1} (X)</th>
+              <th className="p-3 border-b">{player2} (O)</th>
+              <th className="p-3 border-b">Draws</th>
             </tr>
           </thead>
           <tbody className="bg-blue-950/50">
             <tr className="hover:bg-blue-800/50 transition">
-              <td className="p-3 border-b border-blue-300">{scoreX}</td>
-              <td className="p-3 border-b border-blue-300">{scoreO}</td>
-              <td className="p-3 border-b border-blue-300">{draws}</td>
+              <td className="p-3 border-b">{scoreX}</td>
+              <td className="p-3 border-b">{scoreO}</td>
+              <td className="p-3 border-b">{draws}</td>
             </tr>
           </tbody>
         </table>
@@ -238,7 +215,7 @@ export default function Game() {
             <button
               key={move}
               onClick={() => jumpTo(move)}
-              className="m-1 px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-500"
+              className="m-1 px-3 py-1 bg-gray-600 rounded hover:bg-gray-500"
             >
               {move === 0 ? "Go to game start" : `Go to move #${move}`}
             </button>
@@ -246,21 +223,18 @@ export default function Game() {
         </div>
 
         <button
-          className="mt-4 px-6 py-2 bg-red-500 text-white rounded hover:bg-red-600"
           onClick={resetGame}
+          className="mt-4 px-6 py-2 bg-red-500 rounded hover:bg-red-600"
         >
           Restart Game
         </button>
-
         <button
-          className="mt-2 px-6 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
+          className="mt-2 px-6 py-2 bg-yellow-500 rounded hover:bg-yellow-600"
           onClick={() => {
             setScoreX(0);
             setScoreO(0);
             setDraws(0);
-            localStorage.removeItem("scoreX");
-            localStorage.removeItem("scoreO");
-            localStorage.removeItem("draws");
+            localStorage.clear();
           }}
         >
           Reset Scoreboard
@@ -270,6 +244,7 @@ export default function Game() {
   );
 }
 
+// --- Supporting Functions ---
 function getAIMove(squares, mode) {
   switch (mode) {
     case "ai-easy":
@@ -294,7 +269,7 @@ function getMediumMove(squares) {
   for (let i = 0; i < squares.length; i++) {
     if (!squares[i]) {
       squares[i] = "O";
-      if (calculateWinner(squares) === "O") {
+      if (calculateWinner(squares).winner === "O") {
         squares[i] = null;
         return i;
       }
@@ -304,7 +279,7 @@ function getMediumMove(squares) {
   for (let i = 0; i < squares.length; i++) {
     if (!squares[i]) {
       squares[i] = "X";
-      if (calculateWinner(squares) === "X") {
+      if (calculateWinner(squares).winner === "X") {
         squares[i] = null;
         return i;
       }
@@ -323,7 +298,6 @@ function findBestMove(squares, aiPlayer) {
       squares[i] = aiPlayer;
       let score = minimax(squares, 0, false);
       squares[i] = null;
-
       if (score > bestScore) {
         bestScore = score;
         move = i;
@@ -334,7 +308,7 @@ function findBestMove(squares, aiPlayer) {
 }
 
 function minimax(squares, depth, isMaximizing) {
-  const winner = calculateWinner(squares);
+  const { winner } = calculateWinner(squares);
   if (winner === "X") return -10 + depth;
   if (winner === "O") return 10 - depth;
   if (squares.every((square) => square !== null)) return 0;
@@ -373,8 +347,9 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6],
   ];
-  for (const [a, b, c] of lines) {
-    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+
+  for (let [a, b, c] of lines) {
+    if (squares[a] && squares[a] === squares[b] && squares[b] === squares[c]) {
       return { winner: squares[a], line: [a, b, c] };
     }
   }
