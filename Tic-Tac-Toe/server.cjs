@@ -13,16 +13,19 @@ const io = new Server(server, {
   },
 });
 
+// In-memory room tracking
 const rooms = {};
 
 io.on("connection", (socket) => {
+  console.log(`🔌 New connection: ${socket.id}`);
+
   socket.on("joinRoom", ({ roomId, name, type }) => {
     if (!rooms[roomId]) {
       rooms[roomId] = [];
     }
 
     const isAlreadyInRoom = rooms[roomId].some(
-      (player) => player.name === name
+      (player) => player.id === socket.id
     );
     const isRoomFull = rooms[roomId].length >= 2;
 
@@ -39,10 +42,10 @@ io.on("connection", (socket) => {
       rooms[roomId].push({ id: socket.id, name, type });
     }
 
-    // Notify the specific player they joined successfully
+    // Notify joining player
     socket.emit("roomJoined", { roomId, players: rooms[roomId] });
 
-    // Notify everyone in the room of the current player list
+    // Notify everyone in room
     io.to(roomId).emit("roomUpdate", rooms[roomId]);
   });
 
@@ -53,8 +56,10 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("playerMove", ({ roomId, move }) => {
+  socket.on("playerMove", ({ move }) => {
+    const roomId = socket.roomId;
     if (roomId) {
+      // Send move to the opponent only
       socket.to(roomId).emit("playerMove", move);
     }
   });
@@ -64,7 +69,7 @@ io.on("connection", (socket) => {
     const name = socket.name;
 
     if (roomId && rooms[roomId]) {
-      rooms[roomId] = rooms[roomId].filter((player) => player.name !== name);
+      rooms[roomId] = rooms[roomId].filter((player) => player.id !== socket.id);
 
       if (rooms[roomId].length === 0) {
         delete rooms[roomId];
@@ -72,9 +77,11 @@ io.on("connection", (socket) => {
         io.to(roomId).emit("roomUpdate", rooms[roomId]);
       }
     }
+
+    console.log(`❌ Disconnected: ${socket.id}`);
   });
 });
 
 server.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+  console.log("🚀 Server running on http://localhost:3000");
 });

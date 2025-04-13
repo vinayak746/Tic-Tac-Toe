@@ -3,7 +3,6 @@ import { useLocation } from "react-router-dom";
 import socket from "../socket";
 import Confetti from "react-confetti";
 
-// Square Component
 function Square({ value, onSquareClick, isWinning }) {
   return (
     <button
@@ -19,7 +18,6 @@ function Square({ value, onSquareClick, isWinning }) {
   );
 }
 
-// Board Component
 function Board({ squares, onPlay, winningLine }) {
   return (
     <div className="grid grid-cols-3 gap-2">
@@ -35,7 +33,6 @@ function Board({ squares, onPlay, winningLine }) {
   );
 }
 
-// Game Component
 export default function Game() {
   const location = useLocation();
   const queryParams = new URLSearchParams(location.search);
@@ -58,13 +55,12 @@ export default function Game() {
   const [draws, setDraws] = useState(
     () => Number(localStorage.getItem("draws")) || 0
   );
+
   const currentSquares = history[stepNumber];
   const { winner, line: winningLine } = calculateWinner(currentSquares);
   const isDraw = !winner && currentSquares.every((square) => square !== null);
+  const isHost = player1 === "Player X";
 
-  const isHost = player1 === "Player X"; // multiplayer role assignment
-
-  // Handle AI Moves
   useEffect(() => {
     if (mode.startsWith("ai") && !xIsNext && !winner) {
       const move = getAIMove(currentSquares, mode);
@@ -74,7 +70,6 @@ export default function Game() {
     }
   }, [xIsNext, history]);
 
-  // Draw effect
   useEffect(() => {
     if (isDraw) {
       const effects = ["awkward", "glitch", "drama"];
@@ -85,16 +80,11 @@ export default function Game() {
     }
   }, [isDraw]);
 
-  // Score tracking
   useEffect(() => {
     if (!winner && !isDraw) return;
-    if (winner === "X") {
-      updateScore(setScoreX, "scoreX");
-    } else if (winner === "O") {
-      updateScore(setScoreO, "scoreO");
-    } else if (isDraw) {
-      updateScore(setDraws, "draws");
-    }
+    if (winner === "X") updateScore(setScoreX, "scoreX");
+    else if (winner === "O") updateScore(setScoreO, "scoreO");
+    else if (isDraw) updateScore(setDraws, "draws");
   }, [winner, isDraw]);
 
   function updateScore(setter, key) {
@@ -107,20 +97,16 @@ export default function Game() {
 
   function handlePlay(i, fromSocket = false) {
     if (currentSquares[i] || winner) return;
-
     if (mode === "multiplayer" && !fromSocket) {
       const isMyTurn = (xIsNext && isHost) || (!xIsNext && !isHost);
       if (!isMyTurn) return;
     }
-
     const newSquares = currentSquares.slice();
     newSquares[i] = xIsNext ? "X" : "O";
     const newHistory = [...history.slice(0, stepNumber + 1), newSquares];
-
     setHistory(newHistory);
     setStepNumber(newHistory.length - 1);
     setXIsNext(!xIsNext);
-
     if (mode === "multiplayer" && !fromSocket) {
       socket.emit("makeMove", { roomId, index: i });
     }
@@ -147,7 +133,6 @@ export default function Game() {
       socket.emit("joinRoom", roomId);
       socket.on("opponentMove", (index) => handlePlay(index, true));
     }
-
     return () => {
       socket.off("opponentMove");
     };
@@ -244,7 +229,6 @@ export default function Game() {
   );
 }
 
-// --- Supporting Functions ---
 function getAIMove(squares, mode) {
   switch (mode) {
     case "ai-easy":
@@ -292,7 +276,6 @@ function getMediumMove(squares) {
 function findBestMove(squares, aiPlayer) {
   let bestScore = -Infinity;
   let move = -1;
-
   for (let i = 0; i < squares.length; i++) {
     if (!squares[i]) {
       squares[i] = aiPlayer;
@@ -347,9 +330,8 @@ function calculateWinner(squares) {
     [0, 4, 8],
     [2, 4, 6],
   ];
-
   for (let [a, b, c] of lines) {
-    if (squares[a] && squares[a] === squares[b] && squares[b] === squares[c]) {
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
       return { winner: squares[a], line: [a, b, c] };
     }
   }
