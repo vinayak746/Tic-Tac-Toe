@@ -4,19 +4,20 @@
 
 ## 🚀 Play Now
 
-Jump right in and challenge yourself against sophisticated AI opponents or watch AI battle AI. Start playing instantly with zero setup required!
+Jump right in and challenge yourself against sophisticated AI opponents. Start playing instantly with zero setup required!
 
 ## ✨ Game Modes
 
 ### Currently Available:
+
 - **👤 Human vs AI**: Test your skills against three AI difficulty levels
   - **Easy**: Perfect for beginners and casual play
   - **Intermediate**: A balanced challenge with smart moves
   - **Unbeatable**: Powered by minimax algorithm—can you force a draw?
-- **🤖 AI vs AI**: Watch intelligent agents compete in strategic battles
 
 ### Coming Soon:
-- **👥 Player vs Player**: Real-time multiplayer matches
+
+- **👥 Player vs Player**: Real-time multiplayer matches (planned but not yet available)
 - **🌐 Socket-ready architecture**: Future-proof design for live online gameplay
 
 ## 🛠️ Tech Stack
@@ -37,6 +38,7 @@ Jump right in and challenge yourself against sophisticated AI opponents or watch
 ## 🎲 Why Play?
 
 Whether you're looking for a quick casual game or a strategic challenge, this advanced Tic-Tac-Toe delivers. Perfect for:
+
 - Testing your strategy against different AI difficulty levels
 - Learning game theory and minimax algorithms in action
 - Enjoying a classic game with modern implementation
