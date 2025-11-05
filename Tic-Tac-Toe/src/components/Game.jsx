@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Confetti from "react-confetti";
 import socket from "../socket";
 
@@ -35,6 +35,7 @@ function Board({ squares, onPlay, winningLine = [] }) {
 
 export default function Game() {
   const location = useLocation();
+  const navigate = useNavigate();
   const query = useMemo(
     () => new URLSearchParams(location.search),
     [location.search]
@@ -309,6 +310,12 @@ export default function Game() {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-950 to-blue-800 text-white p-8">
       {winner && <Confetti />}
       <div className="flex flex-col items-center w-full max-w-md">
+        <button
+          onClick={() => navigate("/")}
+          className="self-end mb-4 rounded-lg bg-slate-900/70 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-900"
+        >
+          Home
+        </button>
         <h2 className="text-2xl font-semibold mb-2">
           {winner
             ? `Winner: ${winnerName}`
