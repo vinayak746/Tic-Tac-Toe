@@ -1,8 +1,6 @@
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { io } from "socket.io-client";
-
-const socket = io("http://localhost:3000", { autoConnect: false }); // Backend WebSocket server
+import socket from "../socket";
 
 export default function Lobby() {
   const [params] = useSearchParams();
@@ -27,24 +25,39 @@ export default function Lobby() {
       setPlayers(roomPlayers);
     });
 
+    socket.on("roomJoined", ({ roomId: rid, players: roomPlayers }) => {
+      setPlayers(roomPlayers);
+    });
+
+    // server will send assigned symbols inside finalPlayers
     socket.on("startGame", (finalPlayers) => {
       const [p1, p2] = finalPlayers;
+      // include assigned symbols and ids so Game can pick the right symbol/turn
       navigate(
         `/game?mode=multiplayer&player1=${encodeURIComponent(
           p1.name
-        )}&player2=${encodeURIComponent(p2.name)}&room=${roomId}`
+        )}&player2=${encodeURIComponent(p2.name)}&room=${roomId}&p1id=${
+          p1.id
+        }&p2id=${p2.id}&p1symbol=${p1.symbol}&p2symbol=${p2.symbol}`
       );
+    });
+
+    socket.on("error", (err) => {
+      if (err && err.message) alert(err.message);
     });
 
     return () => {
       socket.off("roomUpdate");
+      socket.off("roomJoined");
       socket.off("startGame");
+      socket.off("error");
+      // keep socket connected so Game can reuse it
     };
   }, [roomId, name, type, navigate]);
 
   const handleStartGame = () => {
     if (players.length < 2) return alert("Waiting for second player...");
-    socket.emit("startGame", players); // Send current players
+    socket.emit("startGame");
   };
 
   return (
