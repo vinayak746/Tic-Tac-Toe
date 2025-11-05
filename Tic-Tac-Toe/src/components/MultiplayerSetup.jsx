@@ -11,10 +11,26 @@ export default function MultiplayerSetup() {
     return Math.random().toString(36).substring(2, 8);
   }
 
-  function handleCreateRoom(e) {
+  async function handleCreateRoom(e) {
     e.preventDefault();
     const trimmedName = name.trim() || "Player 1";
     const roomId = generateRoomID();
+
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(roomId);
+      } else {
+        const input = document.createElement("input");
+        input.value = roomId;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand("copy");
+        document.body.removeChild(input);
+      }
+    } catch (err) {
+      console.error("Room copy failed", err);
+    }
+
     navigate(`/lobby?room=${roomId}&name=${trimmedName}&type=host`);
   }
 
