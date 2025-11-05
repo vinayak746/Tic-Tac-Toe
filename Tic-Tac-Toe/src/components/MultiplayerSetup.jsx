@@ -48,8 +48,8 @@ export default function MultiplayerSetup() {
             Set up your match
           </h1>
           <p className="text-sm text-slate-300 sm:text-base">
-            Create a room to host a friend or jump straight into a friend’s lobby
-            using their code.
+            Create a room to host a friend or jump straight into a friend’s
+            lobby using their code.
           </p>
         </div>
 
@@ -85,7 +85,9 @@ export default function MultiplayerSetup() {
           </div>
 
           <div className="rounded-2xl border border-indigo-400/20 bg-indigo-400/10 p-6">
-            <h2 className="text-lg font-semibold text-indigo-100">Join a room</h2>
+            <h2 className="text-lg font-semibold text-indigo-100">
+              Join a room
+            </h2>
             <p className="mt-2 text-sm text-indigo-200/80">
               Already have an invite? Enter the host’s room ID below to hop in.
             </p>
