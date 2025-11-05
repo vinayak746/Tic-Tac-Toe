@@ -385,7 +385,7 @@ Start a [discussion](https://github.com/vinayak746/tic-tac-toe/discussions)
 
 ### Want to Connect?
 - 🌐 Website: [tic-tac-toe-vi.vercel.app](https://tic-tac-toe-vi.vercel.app)
-- 💼 LinkedIn: [Your Profile](https://linkedin.com/in/vinayak-arora746)
+- 💼 LinkedIn: [vinayak-arora746](https://linkedin.com/in/vinayak-arora746)
 
 ---
 
