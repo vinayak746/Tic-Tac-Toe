@@ -279,6 +279,392 @@ tic-tac-toe/
 
 ---
 
+## 💻 Code Documentation
+
+### Core Game Logic
+
+The game logic is centralized in `Game.jsx` and implements the classic Tic-Tac-Toe rules with AI enhancements.
+
+#### Win Detection Algorithm
+
+```javascript
+function calculateWinner(squares) {
+  if (!Array.isArray(squares) || squares.length !== 9) {
+    return { winner: null, line: [] };
+  }
+  
+  const lines = [
+    [0, 1, 2], [3, 4, 5], [6, 7, 8],  // Rows
+    [0, 3, 6], [1, 4, 7], [2, 5, 8],  // Columns
+    [0, 4, 8], [2, 4, 6]              // Diagonals
+  ];
+  
+  for (const [a, b, c] of lines) {
+    if (squares[a] && squares[a] === squares[b] && squares[a] === squares[c]) {
+      return { winner: squares[a], line: [a, b, c] };
+    }
+  }
+  
+  return { winner: null, line: [] };
+}
+```
+
+**How it works:**
+- Checks all 8 possible winning combinations (3 rows, 3 columns, 2 diagonals)
+- Returns the winner symbol and winning line positions
+- Used for highlighting winning squares and victory detection
+
+---
+
+### AI Implementations
+
+#### Easy Mode: Random Moves
+
+```javascript
+function getRandomMove(squares) {
+  const available = squares
+    .map((val, idx) => (val == null ? idx : null))
+    .filter(val => val != null);
+  
+  if (available.length === 0) return -1;
+  
+  return available[Math.floor(Math.random() * available.length)];
+}
+```
+
+**Strategy:** Picks any random available square. Perfect for beginners.
+
+---
+
+#### Medium Mode: Defensive AI
+
+```javascript
+function getMediumMove(squares) {
+  // 1. Check if AI can win
+  for (let i = 0; i < squares.length; i++) {
+    if (!squares[i]) {
+      squares[i] = "O";
+      if (calculateWinner(squares).winner === "O") {
+        squares[i] = null;
+        return i;
+      }
+      squares[i] = null;
+    }
+  }
+  
+  // 2. Block opponent's winning move
+  for (let i = 0; i < squares.length; i++) {
+    if (!squares[i]) {
+      squares[i] = "X";
+      if (calculateWinner(squares).winner === "X") {
+        squares[i] = null;
+        return i;
+      }
+      squares[i] = null;
+    }
+  }
+  
+  // 3. Otherwise, random move
+  return getRandomMove(squares);
+}
+```
+
+**Strategy:**
+1. First priority: Win if possible
+2. Second priority: Block opponent's winning move
+3. Fallback: Random available square
+
+---
+
+#### Hard Mode: Minimax Algorithm
+
+```javascript
+function minimax(squares, depth, isMaximizing) {
+  const { winner } = calculateWinner(squares);
+  
+  // Base cases
+  if (winner === "X") return -10 + depth;  // Human wins (minimize)
+  if (winner === "O") return 10 - depth;   // AI wins (maximize)
+  if (squares.every(square => square !== null)) return 0;  // Draw
+  
+  if (isMaximizing) {
+    // AI's turn - maximize score
+    let bestScore = -Infinity;
+    for (let i = 0; i < squares.length; i++) {
+      if (!squares[i]) {
+        squares[i] = "O";
+        bestScore = Math.max(bestScore, minimax(squares, depth + 1, false));
+        squares[i] = null;
+      }
+    }
+    return bestScore;
+  } else {
+    // Human's turn - minimize score
+    let bestScore = Infinity;
+    for (let i = 0; i < squares.length; i++) {
+      if (!squares[i]) {
+        squares[i] = "X";
+        bestScore = Math.min(bestScore, minimax(squares, depth + 1, true));
+        squares[i] = null;
+      }
+    }
+    return bestScore;
+  }
+}
+
+function findBestMove(squares, aiPlayer) {
+  let bestScore = -Infinity;
+  let move = -1;
+  
+  for (let i = 0; i < squares.length; i++) {
+    if (!squares[i]) {
+      squares[i] = aiPlayer;
+      const score = minimax(squares, 0, false);
+      squares[i] = null;
+      
+      if (score > bestScore) {
+        bestScore = score;
+        move = i;
+      }
+    }
+  }
+  
+  return move;
+}
+```
+
+**How Minimax Works:**
+
+1. **Recursive Evaluation:** Explores all possible game states
+2. **Scoring System:**
+   - AI win: +10 (minus depth for faster wins)
+   - Human win: -10 (plus depth to delay loss)
+   - Draw: 0
+3. **Alternating Perspective:**
+   - Maximizing: AI tries to get highest score
+   - Minimizing: Assumes human plays optimally
+4. **Depth Adjustment:** Prefers quicker victories and slower defeats
+
+**Why It's Unbeatable:**
+- Evaluates every possible game outcome
+- Always chooses the move leading to best result
+- Assumes opponent plays perfectly
+
+---
+
+### AI Move Wrapper
+
+```javascript
+function getAIMove(squares, mode) {
+  switch (mode) {
+    case "ai-easy": 
+      return getRandomMove(squares);
+    case "ai-medium": 
+      return getMediumMove(squares);
+    case "ai-hard": 
+      return findBestMove(squares, "O");
+    default: 
+      return -1;
+  }
+}
+```
+
+This function routes to the appropriate AI based on selected difficulty.
+
+---
+
+### Multiplayer Implementation
+
+#### Socket.io Events
+
+**Client → Server:**
+```javascript
+// Create room
+socket.emit('createRoom', (roomId) => {
+  console.log('Room created:', roomId);
+});
+
+// Join room
+socket.emit('joinRoom', roomId, (response) => {
+  if (response.success) {
+    console.log('Joined room:', roomId);
+  }
+});
+
+// Make move
+socket.emit('makeMove', { roomId, position });
+```
+
+**Server → Client:**
+```javascript
+// Player joined
+socket.on('playerJoined', (data) => {
+  console.log('Player joined:', data.playerNumber);
+});
+
+// Move made
+socket.on('moveMade', ({ position, player }) => {
+  updateBoard(position, player);
+});
+
+// Game started
+socket.on('gameStarted', () => {
+  console.log('Game started!');
+});
+```
+
+#### Room Management
+
+- **Room Codes:** 6-character alphanumeric IDs
+- **Player Tracking:** Host (Player 1) and Guest (Player 2)
+- **Turn Synchronization:** Server validates whose turn it is
+- **Reconnection:** Rooms persist until both players disconnect
+
+---
+
+### State Management
+
+#### Game State Structure
+
+```javascript
+const [gameState, setGameState] = useState({
+  squares: Array(9).fill(null),  // Board state
+  xIsNext: true,                  // Current turn
+  history: [],                    // Move history
+  currentMove: 0,                 // History position
+  scores: {                       // Persistent scores
+    player1: 0,
+    player2: 0,
+    draws: 0
+  }
+});
+```
+
+#### LocalStorage Persistence
+
+```javascript
+// Save scores
+useEffect(() => {
+  localStorage.setItem('tictactoe-scores', JSON.stringify(scores));
+}, [scores]);
+
+// Load scores on mount
+useEffect(() => {
+  const saved = localStorage.getItem('tictactoe-scores');
+  if (saved) {
+    setScores(JSON.parse(saved));
+  }
+}, []);
+```
+
+---
+
+### Key React Patterns
+
+#### Custom Hooks Usage
+
+- `useState` - Game state, scores, history
+- `useEffect` - Socket listeners, persistence, AI moves
+- `useCallback` - Memoized handlers for performance
+- `useNavigate` - React Router navigation
+
+#### Component Communication
+
+```
+App.jsx (Router)
+├── PlayerForm.jsx (Mode selection)
+├── MultiplayerSetup.jsx (Room management)
+├── Lobby.jsx (Waiting room)
+└── Game.jsx (Game board)
+    ├── Board rendering
+    ├── Move handling
+    └── AI/Multiplayer logic
+```
+
+---
+
+### Performance Optimizations
+
+1. **Memoization:** AI calculations cached between renders
+2. **Event Debouncing:** Prevents rapid click exploits
+3. **Lazy Loading:** Components load on-demand
+4. **Socket Cleanup:** Listeners removed on unmount
+
+---
+
+### Error Handling
+
+```javascript
+// Invalid move protection
+function handleClick(i) {
+  if (squares[i] || calculateWinner(squares).winner) {
+    return;  // Ignore clicks on filled squares or after game ends
+  }
+  // ... proceed with move
+}
+
+// Socket error handling
+socket.on('error', (error) => {
+  console.error('Socket error:', error);
+  setError(error.message);
+});
+
+// Room validation
+if (!roomId || roomId.length !== 6) {
+  setError('Invalid room code. Must be 6 characters.');
+  return;
+}
+```
+
+---
+
+### Testing the Code
+
+#### Manual Test Cases
+
+1. **Win Detection:**
+   - Test all 8 winning combinations
+   - Verify line highlighting
+
+2. **AI Behavior:**
+   - Easy: Confirm random moves
+   - Medium: Test block and win priority
+   - Hard: Try to beat it (you can't! 😉)
+
+3. **Multiplayer Sync:**
+   - Open two browser windows
+   - Verify real-time updates
+   - Test reconnection
+
+4. **Edge Cases:**
+   - Rapid clicking
+   - Network disconnection
+   - Invalid room codes
+   - Full board (draw)
+
+---
+
+### Code Style Guidelines
+
+- **Naming:** camelCase for variables/functions, PascalCase for components
+- **Comments:** Explain "why" not "what"
+- **Formatting:** Prettier with 2-space indentation
+- **Linting:** ESLint with React recommended rules
+
+---
+
+### Extending the Code
+
+**Want to add features? Here's where to start:**
+
+- **New AI personality:** Modify `getMediumMove()` logic
+- **Board size:** Adjust `squares` array and `lines` in `calculateWinner()`
+- **Themes:** Update Tailwind classes in components
+- **Animations:** Add Framer Motion to `Game.jsx`
+- **Sound effects:** Use Howler.js in move handlers
+
+---
+
 ## 🔮 Roadmap
 
 ### Phase 1: Core Enhancements ✨
@@ -402,3 +788,4 @@ Made with ❤️ and ☕ by [Vinayak](https://github.com/vinayak746)
 *"The best way to predict the future is to implement it."*
 
 </div>
+
